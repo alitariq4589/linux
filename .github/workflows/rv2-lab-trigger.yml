@@ -1,0 +1,38 @@
+# Lives in the KERNEL FORK (alitariq4589/linux), committed once on the
+# ci-base branch as .github/workflows/rv2-lab-trigger.yml.
+#
+# Any push to a dev/** or test/** branch asks the lab repo's pipeline to
+# build THIS tree at THAT branch, publish it to the rv2-dev-* release
+# channels, and run the kselftest + memory-debug jobs on the Orange Pi RV2.
+# The real rv2-latest/rv2-debug channels (nightly + health check) are
+# never touched by these runs.
+#
+# One-time setup in the fork:
+#   Settings -> Secrets and variables -> Actions -> New repository secret:
+#   LAB_DISPATCH_TOKEN = a fine-grained PAT (your user -> Settings ->
+#   Developer settings -> Fine-grained tokens) scoped to ONLY the
+#   alitariq4589/lava-webserver-riscv repository, with
+#   "Actions: Read and write" permission.
+
+name: rv2-lab-trigger
+
+on:
+  push:
+    branches:
+      - 'dev/**'
+      - 'test/**'
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger the lab pipeline for this branch
+        env:
+          GH_TOKEN: ${{ secrets.LAB_DISPATCH_TOKEN }}
+        run: |
+          gh workflow run rv2-kernel.yml \
+            --repo alitariq4589/lava-webserver-riscv \
+            -f tree="${{ github.server_url }}/${{ github.repository }}" \
+            -f ref="${{ github.ref_name }}" \
+            -f channel_prefix=rv2-dev
+          echo "Dispatched build+board-test of ${{ github.ref_name }} -> https://github.com/alitariq4589/lava-webserver-riscv/actions" >> "$GITHUB_STEP_SUMMARY"
