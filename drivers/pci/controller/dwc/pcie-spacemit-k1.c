@@ -12,12 +12,9 @@
 #include <linux/err.h>
 #include <linux/gfp.h>
 #include <linux/mfd/syscon.h>
-#include <linux/of.h>
 #include <linux/phy/phy.h>
 #include <linux/platform_device.h>
-#include <linux/pm_runtime.h>
 #include <linux/regmap.h>
-#include <linux/regulator/consumer.h>
 #include <linux/reset.h>
 #include <linux/types.h>
 
@@ -330,6 +327,23 @@ static int k1_pcie_probe(struct platform_device *pdev)
 	return 0;
 }
 
+static int k1_pcie_suspend_noirq(struct device *pdev)
+{
+	struct k1_pcie *k1 = platform_get_drvdata(pdev);
+
+	return dw_pcie_suspend_noirq(&k1->pci);
+}
+
+static int k1_pcie_resume_noirq(struct device *pdev)
+{
+	struct k1_pcie *k1 = dev_get_drvdata(pdev);
+
+	return dw_pcie_resume_noirq(&k1->pci);
+}
+
+static DEFINE_NOIRQ_DEV_PM_OPS(k1_pcie_pm, k1_pcie_suspend_noirq,
+				k1_pcie_resume_noirq);
+
 static void k1_pcie_remove(struct platform_device *pdev)
 {
 	struct k1_pcie *k1 = platform_get_drvdata(pdev);
@@ -350,6 +364,7 @@ static struct platform_driver k1_pcie_driver = {
 		.name			= "spacemit-k1-pcie",
 		.of_match_table		= k1_pcie_of_match_table,
 		.probe_type		= PROBE_PREFER_ASYNCHRONOUS,
+		.pm				= &k1_pcie_pm,
 	},
 };
 module_platform_driver(k1_pcie_driver);
