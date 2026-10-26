@@ -327,16 +327,16 @@ static int k1_pcie_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static int k1_pcie_suspend_noirq(struct device *pdev)
+static int k1_pcie_suspend_noirq(struct device *dev)
 {
-	struct k1_pcie *k1 = platform_get_drvdata(pdev);
+	struct k1_pcie *k1 = dev_get_drvdata(dev);
 
 	return dw_pcie_suspend_noirq(&k1->pci);
 }
 
-static int k1_pcie_resume_noirq(struct device *pdev)
+static int k1_pcie_resume_noirq(struct device *dev)
 {
-	struct k1_pcie *k1 = dev_get_drvdata(pdev);
+	struct k1_pcie *k1 = dev_get_drvdata(dev);
 
 	return dw_pcie_resume_noirq(&k1->pci);
 }
