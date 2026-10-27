@@ -125,13 +125,12 @@ static void k1_pcie_disable_aspm_l1(struct k1_pcie *k1)
 
 static int k1_pcie_init(struct dw_pcie_rp *pp)
 {
-	dev_info(pci->dev, "k1dbg: Entering init function \n");
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
 	struct k1_pcie *k1 = to_k1_pcie(pci);
 	u32 reset_ctrl;
 	u32 val;
 	int ret;
-
+	dev_info(pci->dev, "k1dbg: Entering init function \n");
 	k1_pcie_toggle_soft_reset(k1);
 
 	ret = k1_pcie_enable_resources(k1);
