@@ -300,6 +300,7 @@ static int k1_pcie_probe(struct platform_device *pdev)
 	dw_pcie_cap_set(&k1->pci, REQ_RES);
 
 	k1->pci.pp.ops = &k1_pcie_host_ops;
+	k1->pci.pp.use_atu_msg = true;
 
 	/* Hold the PHY in reset until we start the link */
 	regmap_set_bits(k1->pmu, k1->pmu_off + PCIE_CLK_RESET_CONTROL,
