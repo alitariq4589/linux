@@ -125,6 +125,7 @@ static void k1_pcie_disable_aspm_l1(struct k1_pcie *k1)
 
 static int k1_pcie_init(struct dw_pcie_rp *pp)
 {
+	dev_info(pci->dev, "k1dbg: Entering init function \n");
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
 	struct k1_pcie *k1 = to_k1_pcie(pci);
 	u32 reset_ctrl;
@@ -134,6 +135,7 @@ static int k1_pcie_init(struct dw_pcie_rp *pp)
 	k1_pcie_toggle_soft_reset(k1);
 
 	ret = k1_pcie_enable_resources(k1);
+	dev_info(pci->dev, "k1dbg: k1_pcie_enable_resources returned %d\n", ret);
 	if (ret)
 		return ret;
 
@@ -208,6 +210,7 @@ static bool k1_pcie_link_up(struct dw_pcie *pci)
 
 static int k1_pcie_start_link(struct dw_pcie *pci)
 {
+	dev_info(pci->dev, "k1dbg: Entering the k1_pcie_start_link \n");
 	struct k1_pcie *k1 = to_k1_pcie(pci);
 	u32 val;
 
@@ -222,6 +225,8 @@ static int k1_pcie_start_link(struct dw_pcie *pci)
 	val = readl_relaxed(k1->link + K1_PHY_AHB_IRQ_EN);
 	val |= PCIE_INTERRUPT_EN;
 	writel_relaxed(val, k1->link + K1_PHY_AHB_IRQ_EN);
+	
+	dev_info(pci->dev, "k1dbg: Exiting the k1_pcie_start_link \n");
 
 	return 0;
 }
