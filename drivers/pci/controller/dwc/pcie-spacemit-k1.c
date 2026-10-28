@@ -142,6 +142,8 @@ static int k1_pcie_init(struct dw_pcie_rp *pp)
 	dw_pcie_dbi_ro_wr_en(pci);
 	dw_pcie_writew_dbi(pci, PCI_VENDOR_ID, PCI_VENDOR_ID_SPACEMIT);
 	dw_pcie_writew_dbi(pci, PCI_DEVICE_ID, PCI_DEVICE_ID_SPACEMIT_K1);
+	dev_info(pci->dev, "k1dbg: Writing the vendor ID \n");
+
 	dw_pcie_dbi_ro_wr_dis(pci);
 
 	/*
@@ -155,7 +157,7 @@ static int k1_pcie_init(struct dw_pcie_rp *pp)
 	regmap_set_bits(k1->pmu, reset_ctrl, PCIE_RC_PERST);
 	regmap_read(k1->pmu, reset_ctrl, &val);
 	mdelay(PCIE_T_PVPERL_MS);
-
+	dev_info(pci->dev, "k1dbg: inserted the mdelay in the k1_pcie_init() \n");
 	/*
 	 * Put the controller in root complex mode, and indicate that
 	 * Vaux (3.3v) is present.
@@ -168,12 +170,15 @@ static int k1_pcie_init(struct dw_pcie_rp *pp)
 
 		return ret;
 	}
+	dev_info(pci->dev, "k1dbg: Return value of phy_init() is %d/n \n", ret);
 
 	/* Deassert fundamental reset (drive PERST# high) */
 	regmap_clear_bits(k1->pmu, reset_ctrl, PCIE_RC_PERST);
 
 	/* Finally, as a workaround, disable ASPM L1 */
 	k1_pcie_disable_aspm_l1(k1);
+
+	dev_info(pci->dev, "k1dbg: Before returning from function k1_pcie_init() \n");
 
 	return 0;
 }
