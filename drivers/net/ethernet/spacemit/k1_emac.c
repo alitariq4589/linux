@@ -1149,6 +1149,19 @@ static void emac_stats_timer(struct timer_list *t)
 {
 	struct emac_priv *priv = timer_container_of(priv, t, stats_timer);
 
+	struct emac_desc *tail_desc;
+
+	tail_desc = &((struct emac_desc *)priv->rx_ring.desc_addr)[priv->rx_ring.tail];
+	netdev_info(priv->ndev,
+		    "k1dbg status=%08x rx_cur=%08x rx_base=%08x rx head=%u tail=%u tail_desc0=%08x missed=%u tx head=%u tail=%u\n",
+		    emac_rd(priv, DMA_STATUS_IRQ),
+		    emac_rd(priv, DMA_CURRENT_RECEIVE_DESCRIPTOR_POINTER),
+		    (u32)priv->rx_ring.desc_dma_addr,
+		    priv->rx_ring.head, priv->rx_ring.tail,
+		    READ_ONCE(tail_desc->desc0),
+		    emac_rd(priv, DMA_MISSED_FRAME_COUNTER),
+		    priv->tx_ring.head, priv->tx_ring.tail);
+
 	spin_lock(&priv->stats_lock);
 
 	emac_stats_update(priv);
@@ -1446,6 +1459,12 @@ static irqreturn_t emac_interrupt_handler(int irq, void *dev_id)
 	u32 status;
 
 	status = emac_rd(priv, DMA_STATUS_IRQ);
+
+	if (status & (MREGBIT_RECEIVE_DES_UNAVAILABLE_IRQ |
+		      MREGBIT_RECEIVE_DMA_STOPPED_IRQ |
+		      MREGBIT_RECEIVE_MISSED_FRAME_IRQ))
+		dev_info_ratelimited(&ndev->dev, "k1dbg irq status=%08x\n",
+				     status);
 
 	if (status & MREGBIT_TRANSMIT_TRANSFER_DONE_IRQ) {
 		clr |= MREGBIT_TRANSMIT_TRANSFER_DONE_IRQ;
