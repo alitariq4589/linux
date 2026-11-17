@@ -8,6 +8,7 @@
 
 #include <linux/bitfield.h>
 #include <linux/clk.h>
+#include <linux/debug_locks.h>
 #include <linux/delay.h>
 #include <linux/dma-mapping.h>
 #include <linux/etherdevice.h>
@@ -30,8 +31,10 @@
 #include <linux/regmap.h>
 #include <linux/reset.h>
 #include <linux/rtnetlink.h>
+#include <linux/sched/debug.h>
 #include <linux/timer.h>
 #include <linux/types.h>
+#include <net/sch_generic.h>
 
 #include "k1_emac.h"
 
@@ -1147,6 +1150,10 @@ static void emac_stats_update(struct emac_priv *priv)
 
 static void emac_stats_timer(struct timer_list *t)
 {
+	static unsigned int k1dbg_stuck;
+	struct netdev_queue *txq;
+	struct Qdisc *q, *qs;
+	bool noop, rtnl;
 	struct emac_priv *priv = timer_container_of(priv, t, stats_timer);
 
 	struct emac_desc *tail_desc;
@@ -1161,6 +1168,32 @@ static void emac_stats_timer(struct timer_list *t)
 		    READ_ONCE(tail_desc->desc0),
 		    emac_rd(priv, DMA_MISSED_FRAME_COUNTER),
 		    priv->tx_ring.head, priv->tx_ring.tail);
+
+	txq = netdev_get_tx_queue(priv->ndev, 0);
+	rcu_read_lock();
+	q = rcu_dereference(txq->qdisc);
+	qs = rcu_dereference(txq->qdisc_sleeping);
+	noop = qdisc_tx_is_noop(priv->ndev);
+	rtnl = rtnl_is_locked();
+	netdev_info(priv->ndev,
+		    "k1dbg2 txq_state=%lx qdisc=%s sleeping=%s qlen=%d qstate=%lx running=%d lw_pending=%d rtnl=%d\n",
+		    READ_ONCE(txq->state), q->ops->id, qs->ops->id,
+		    qdisc_qlen_sum(qs), READ_ONCE(qs->state),
+		    qdisc_is_running(qs),
+		    test_bit(__LINK_STATE_LINKWATCH_PENDING, &priv->ndev->state),
+		    rtnl);
+	rcu_read_unlock();
+
+	/* Dump blocked tasks and held locks once if TX stays dead with link up */
+	if (netif_carrier_ok(priv->ndev) && (noop || rtnl)) {
+		if (++k1dbg_stuck == 3) {
+			netdev_info(priv->ndev, "k1dbg2 TX stuck, dumping blocked tasks and locks\n");
+			show_state_filter(TASK_UNINTERRUPTIBLE);
+			debug_show_all_locks();
+		}
+	} else {
+		k1dbg_stuck = 0;
+	}
 
 	spin_lock(&priv->stats_lock);
 
