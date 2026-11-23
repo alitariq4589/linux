@@ -1190,6 +1190,7 @@
 				reset-names = "dbi",
 					      "mstr",
 					      "slv";
+				max-link-speed = <2>;
 				spacemit,apmu = <&syscon_apmu 0x03cc>;
 				status = "disabled";
 
@@ -1234,6 +1235,7 @@
 				reset-names = "dbi",
 					      "mstr",
 					      "slv";
+				max-link-speed = <2>;
 				spacemit,apmu = <&syscon_apmu 0x3d4>;
 				status = "disabled";
 
@@ -1279,6 +1281,7 @@
 				reset-names = "dbi",
 					      "mstr",
 					      "slv";
+				max-link-speed = <2>;
 				spacemit,apmu = <&syscon_apmu 0x3dc>;
 				status = "disabled";
 
