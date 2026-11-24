@@ -194,9 +194,47 @@ static void k1_pcie_deinit(struct dw_pcie_rp *pp)
 	k1_pcie_disable_resources(k1);
 }
 
+/* k1dbg: debug only, not for submission */
+static void k1_pcie_post_init(struct dw_pcie_rp *pp)
+{
+	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
+	u8 offset = dw_pcie_find_capability(pci, PCI_CAP_ID_EXP);
+	u32 lnkcap, speed_ctrl;
+	u16 lnkctl2, lnksta;
+
+	lnkcap = dw_pcie_readl_dbi(pci, offset + PCI_EXP_LNKCAP);
+	lnkctl2 = dw_pcie_readw_dbi(pci, offset + PCI_EXP_LNKCTL2);
+	lnksta = dw_pcie_readw_dbi(pci, offset + PCI_EXP_LNKSTA);
+	speed_ctrl = dw_pcie_readl_dbi(pci, LINK_WIDTH_SPEED_CTRL);
+
+	dev_info(pci->dev,
+		 "k1dbg lnkcap=%08x lnkctl2=%04x lnksta=%04x speed_ctrl=%08x\n",
+		 lnkcap, lnkctl2, lnksta, speed_ctrl);
+
+	/* Only ask for a speed change on a port whose link is up */
+	if (!dw_pcie_link_up(pci))
+		return;
+
+	/* Clear the bit, then set it: a new request needs a 0 -> 1 change */
+	dw_pcie_dbi_ro_wr_en(pci);
+	dw_pcie_writel_dbi(pci, LINK_WIDTH_SPEED_CTRL, speed_ctrl & ~SPEED_CHANGE);
+	dw_pcie_writel_dbi(pci, LINK_WIDTH_SPEED_CTRL, speed_ctrl | SPEED_CHANGE);
+	dw_pcie_dbi_ro_wr_dis(pci);
+
+	msleep(100);
+
+	lnksta = dw_pcie_readw_dbi(pci, offset + PCI_EXP_LNKSTA);
+	speed_ctrl = dw_pcie_readl_dbi(pci, LINK_WIDTH_SPEED_CTRL);
+
+	dev_info(pci->dev,
+		 "k1dbg after speed change: lnksta=%04x speed_ctrl=%08x\n",
+		 lnksta, speed_ctrl);
+}
+
 static const struct dw_pcie_host_ops k1_pcie_host_ops = {
 	.init		= k1_pcie_init,
 	.deinit		= k1_pcie_deinit,
+	.post_init	= k1_pcie_post_init,
 };
 
 static bool k1_pcie_link_up(struct dw_pcie *pci)
